@@ -1,0 +1,8 @@
+---
+description: open web to check feature work after changed code
+globs: 
+alwaysApply: false
+---
+- Skip `npm run dev`
+- Open localhost:3000 using playrightmcp if not open
+- Should not close browser after finished check
