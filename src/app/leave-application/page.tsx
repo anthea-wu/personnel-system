@@ -14,13 +14,17 @@ import {
   Radio, 
   Select, 
   MenuItem, 
-  InputLabel 
+  InputLabel,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useState } from 'react';
 
 export default function LeaveApplication() {
   const [timeType, setTimeType] = useState('fullDay');
   const [leaveType, setLeaveType] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   
   // 錯誤狀態管理
   const [errors, setErrors] = useState({
@@ -61,14 +65,80 @@ export default function LeaveApplication() {
     return !Object.values(newErrors).some(error => error);
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const form = event.target as HTMLFormElement;
     
+    // 清除之前的訊息
+    setSubmitMessage(null);
+    
     if (validateForm(form)) {
-      // 表單驗證通過，處理提交邏輯
-      console.log('表單已提交');
-      // 這裡可以添加實際的提交邏輯
+      setIsSubmitting(true);
+      
+      try {
+        const formData = new FormData(form);
+        
+        // 準備要送出的資料
+        const applicationData = {
+          name: (formData.get('name') as string)?.trim(),
+          startDate: formData.get('startDate') as string,
+          endDate: formData.get('endDate') as string,
+          leaveType,
+          reason: (formData.get('reason') as string)?.trim(),
+          timeType,
+          startTime: timeType === 'specificTime' ? 
+            `${formData.get('startHour')}:${formData.get('startMinute')}` : null,
+          endTime: timeType === 'specificTime' ? 
+            `${formData.get('endHour')}:${formData.get('endMinute')}` : null,
+        };
+        
+        // 調用API
+        const response = await fetch('/api/leave-applications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(applicationData),
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          setSubmitMessage({
+            type: 'success',
+            text: '請假申請已成功提交！'
+          });
+          
+          // 重置表單
+          form.reset();
+          setLeaveType('');
+          setTimeType('fullDay');
+          setErrors({
+            name: false,
+            startDate: false,
+            endDate: false,
+            startTime: false,
+            endTime: false,
+            leaveType: false,
+            reason: false
+          });
+          
+        } else {
+          setSubmitMessage({
+            type: 'error',
+            text: result.error || '提交失敗，請稍後再試'
+          });
+        }
+        
+      } catch (error) {
+        console.error('提交請假申請時發生錯誤:', error);
+        setSubmitMessage({
+          type: 'error',
+          text: '網路錯誤，請檢查連線後再試'
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
     } else {
       console.log('表單驗證失敗');
     }
@@ -317,12 +387,36 @@ export default function LeaveApplication() {
                 variant="contained"
                 color="primary"
                 size="large"
+                disabled={isSubmitting}
               >
-                送出申請
+                {isSubmitting ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  '送出申請'
+                )}
               </Button>
             </div>
           </form>
         </Paper>
+        
+        {/* 提交訊息顯示 */}
+        {submitMessage && (
+          <Alert
+            severity={submitMessage.type}
+            sx={{
+              position: 'fixed',
+              bottom: 20,
+              left: 20,
+              right: 20,
+              zIndex: 1000,
+              maxWidth: '600px',
+              margin: '0 auto'
+            }}
+            onClose={() => setSubmitMessage(null)}
+          >
+            {submitMessage.text}
+          </Alert>
+        )}
       </Container>
     </div>
   );

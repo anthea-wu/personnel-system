@@ -20,11 +20,18 @@ const Navbar = () => {
             </Typography>
           </StyledLink>
           <div style={{ flexGrow: 1 }} />
-          <StyledLink href="/leave-application">
-            <Button variant="contained" color="secondary">
-              請假申請
-            </Button>
-          </StyledLink>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <StyledLink href="/leave-application">
+              <Button variant="contained" color="secondary">
+                請假申請
+              </Button>
+            </StyledLink>
+            <StyledLink href="/leave-applications">
+              <Button variant="outlined" color="inherit">
+                申請記錄
+              </Button>
+            </StyledLink>
+          </div>
         </Toolbar>
       </Container>
     </AppBar>
