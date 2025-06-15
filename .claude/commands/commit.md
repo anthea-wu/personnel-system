@@ -2,6 +2,8 @@
 1. 用英文撰寫，不要加特殊符號或 emoji
 2. 根據內容以 feat, refactor, chore, doc, fix 等等開頭
 3. 只寫一行 commit message 就好，勁量控制在 50 個字以內
+4. 不要出現 ` 🤖 Generated with [Claude Code](https://claude.ai/code)`
+5. 不要出現 `Co-Authored-By: Claude <noreply@anthropic.com>`
 
 - 範例 1 - 假設我今天新增了一個功能是請假申請表單，commit message 應該這樣寫：  
   feat: add form for leave application
