@@ -31,6 +31,7 @@ export default function LeaveApplication() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [startHour, setStartHour] = useState('');
   const [startMinute, setStartMinute] = useState('');
   const [endHour, setEndHour] = useState('');
@@ -96,10 +97,12 @@ export default function LeaveApplication() {
     setSubmitMessage(null);
     
     if (validateForm(form)) {
+      console.log('valid form')
       setIsSubmitting(true);
       
       try {
         const formData = new FormData(form);
+        console.log(formData);
         
         // 準備要送出的資料
         const applicationData = {
@@ -137,6 +140,7 @@ export default function LeaveApplication() {
           setLeaveType('');
           setTimeType(TIME_TYPE.FULL_DAY);
           setStartDate('');
+          setEndDate('');
           setStartHour('');
           setStartMinute('');
           setEndHour('');
@@ -207,6 +211,7 @@ export default function LeaveApplication() {
                   onChange={(e) => setLeaveType(e.target.value)}
                   name="leaveType"
                 >
+                  <MenuItem value="" disabled>請選擇假別</MenuItem>
                   <MenuItem value="annual">特休</MenuItem>
                   <MenuItem value="personal">事假</MenuItem>
                   <MenuItem value="sick">病假</MenuItem>
@@ -224,13 +229,6 @@ export default function LeaveApplication() {
                     value={timeType}
                     onChange={(e) => {
                       setTimeType(e.target.value as TIME_TYPE);
-                      // 當選擇指定時間時，同步結束日期為開始日期
-                      if (e.target.value === TIME_TYPE.SPECIFIC_TIME && startDate) {
-                        const endDateInput = document.querySelector('input[name="endDate"]') as HTMLInputElement;
-                        if (endDateInput) {
-                          endDateInput.value = startDate;
-                        }
-                      }
                     }}
                     name="timeType"
                     row
@@ -269,10 +267,8 @@ export default function LeaveApplication() {
                   setStartDate(e.target.value);
                   // 當是指定時間模式時，同步更新結束日期
                   if (timeType === TIME_TYPE.SPECIFIC_TIME) {
-                    const endDateInput = document.querySelector('input[name="endDate"]') as HTMLInputElement;
-                    if (endDateInput) {
-                      endDateInput.value = e.target.value;
-                    }
+                    setEndDate(e.target.value);
+                    console.log('set end date as' + e.target.value);
                   }
                 }}
                 InputLabelProps={{
@@ -302,7 +298,12 @@ export default function LeaveApplication() {
                 name="endDate"
                 type="date"
                 required
-                value={timeType === TIME_TYPE.SPECIFIC_TIME ? startDate : undefined}
+                value={endDate}
+                onChange={(e) => {
+                  if (timeType === TIME_TYPE.FULL_DAY) {
+                    setEndDate(e.target.value);
+                  }
+                }}
                 disabled={timeType === TIME_TYPE.SPECIFIC_TIME}
                 inputProps={{
                   min: startDate || undefined
