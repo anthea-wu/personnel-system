@@ -360,11 +360,11 @@ export default function LeaveApplication() {
                   />
                 )}
               />
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', minHeight: '56px', position: 'relative' }}>
+              <div style={{ flex: 1, display: 'flex', gap: '8px', minHeight: '56px', position: 'relative' }}>
                 {timeType === TIME_TYPE.SPECIFIC_TIME ? (
                   <>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px', position: 'relative' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ display: 'flex', gap: '4px' }}>
                         <Controller
                           name="startHour"
                           control={control}
