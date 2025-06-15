@@ -13,7 +13,13 @@ import {
   TableRow,
   Chip,
   Button,
-  Alert
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Box,
+  Grid
 } from '@mui/material';
 import { useState, useEffect } from 'react';
 
@@ -35,6 +41,8 @@ export default function LeaveApplications() {
   const [applications, setApplications] = useState<LeaveApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchApplications = async () => {
     try {
@@ -86,6 +94,12 @@ export default function LeaveApplications() {
     return statuses[status] || status;
   };
 
+  const filteredApplications = applications.filter((app) => {
+    const leaveTypeMatch = leaveTypeFilter === 'all' || app.leaveType === leaveTypeFilter;
+    const statusMatch = statusFilter === 'all' || app.status === statusFilter;
+    return leaveTypeMatch && statusMatch;
+  });
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
@@ -123,6 +137,56 @@ export default function LeaveApplications() {
           </Alert>
         )}
 
+        <Paper elevation={1} style={{ padding: '16px', marginBottom: '24px' }}>
+          <Typography variant="h6" gutterBottom>
+            篩選條件
+          </Typography>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>假別</InputLabel>
+                <Select
+                  value={leaveTypeFilter}
+                  onChange={(e) => setLeaveTypeFilter(e.target.value)}
+                  label="假別"
+                >
+                  <MenuItem value="all">全部</MenuItem>
+                  <MenuItem value="annual">特休</MenuItem>
+                  <MenuItem value="personal">事假</MenuItem>
+                  <MenuItem value="sick">病假</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth size="small">
+                <InputLabel>狀態</InputLabel>
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  label="狀態"
+                >
+                  <MenuItem value="all">全部</MenuItem>
+                  <MenuItem value="pending">待審核</MenuItem>
+                  <MenuItem value="approved">已核准</MenuItem>
+                  <MenuItem value="rejected">已拒絕</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setLeaveTypeFilter('all');
+                  setStatusFilter('all');
+                }}
+                size="small"
+              >
+                清除篩選
+              </Button>
+            </Grid>
+          </Grid>
+        </Paper>
+
         <Paper elevation={3}>
           <TableContainer>
             <Table>
@@ -140,16 +204,16 @@ export default function LeaveApplications() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {applications.length === 0 ? (
+                {filteredApplications.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} align="center">
                       <Typography color="textSecondary">
-                        目前沒有請假申請記錄
+                        {applications.length === 0 ? '目前沒有請假申請記錄' : '沒有符合篩選條件的記錄'}
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  applications.map((app) => (
+                  filteredApplications.map((app) => (
                     <TableRow key={app.id}>
                       <TableCell>{app.name}</TableCell>
                       <TableCell>
@@ -192,7 +256,7 @@ export default function LeaveApplications() {
         </Paper>
 
         <Typography variant="body2" color="textSecondary" style={{ marginTop: '16px' }}>
-          總共 {applications.length} 筆申請記錄
+          顯示 {filteredApplications.length} / {applications.length} 筆申請記錄
         </Typography>
       </Container>
     </div>
