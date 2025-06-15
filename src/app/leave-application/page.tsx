@@ -49,20 +49,34 @@ const leaveApplicationSchema = z.object({
   message: '結束日期不能早於開始日期',
   path: ['endDate']
 }).refine((data) => {
-  // 驗證指定時間模式下的時間欄位
+  // 驗證指定時間模式下必須選擇開始時間
   if (data.timeType === TIME_TYPE.SPECIFIC_TIME) {
-    if (!data.startHour || !data.startMinute || !data.endHour || !data.endMinute) {
-      return false;
-    }
-    // 驗證結束時間至少比開始時間晚30分鐘
+    return !!(data.startHour && data.startMinute);
+  }
+  return true;
+}, {
+  message: '請選擇開始時間',
+  path: ['startHour']
+}).refine((data) => {
+  // 驗證指定時間模式下必須選擇結束時間
+  if (data.timeType === TIME_TYPE.SPECIFIC_TIME) {
+    return !!(data.endHour && data.endMinute);
+  }
+  return true;
+}, {
+  message: '請選擇結束時間',
+  path: ['endHour']
+}).refine((data) => {
+  // 驗證結束時間至少比開始時間晚30分鐘
+  if (data.timeType === TIME_TYPE.SPECIFIC_TIME && data.startHour && data.startMinute && data.endHour && data.endMinute) {
     const startMinutes = parseInt(data.startHour) * 60 + parseInt(data.startMinute);
     const endMinutes = parseInt(data.endHour) * 60 + parseInt(data.endMinute);
     return endMinutes >= startMinutes + 30;
   }
   return true;
 }, {
-  message: '請選擇正確的時間，結束時間必須至少比開始時間晚30分鐘',
-  path: ['endTime']
+  message: '結束時間必須至少比開始時間晚30分鐘',
+  path: ['endHour']
 });
 
 type LeaveApplicationForm = z.infer<typeof leaveApplicationSchema>;
@@ -274,7 +288,7 @@ export default function LeaveApplication() {
                     }}
                     variant="outlined"
                     error={!!errors.startDate}
-                    helperText={errors.startDate?.message || ''}
+                    helperText={errors.startDate?.message || '請選擇開始日期'}
                     sx={{
                       '& input[type="date"]': {
                         cursor: 'pointer',
@@ -334,7 +348,7 @@ export default function LeaveApplication() {
                   />
                 )}
               />
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', minHeight: '56px' }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', minHeight: '56px', position: 'relative' }}>
                 {timeType === TIME_TYPE.SPECIFIC_TIME ? (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -342,11 +356,12 @@ export default function LeaveApplication() {
                         name="startHour"
                         control={control}
                         render={({ field }) => (
-                          <FormControl size="small" error={!!errors.endTime}>
+                          <FormControl size="small" error={!!errors.startHour}>
                             <Select
                               {...field}
                               displayEmpty
                               style={{ minWidth: '70px' }}
+                              data-testid="start-hour"
                             >
                               <MenuItem value="" disabled>時</MenuItem>
                               {Array.from({ length: 24 }, (_, i) => {
@@ -368,11 +383,12 @@ export default function LeaveApplication() {
                         name="startMinute"
                         control={control}
                         render={({ field }) => (
-                          <FormControl size="small" error={!!errors.endTime}>
+                          <FormControl size="small" error={!!errors.startHour}>
                             <Select
                               {...field}
                               displayEmpty
                               style={{ minWidth: '70px' }}
+                              data-testid="start-minute"
                             >
                               <MenuItem value="" disabled>分</MenuItem>
                               <MenuItem value="00">00</MenuItem>
@@ -390,11 +406,12 @@ export default function LeaveApplication() {
                         name="endHour"
                         control={control}
                         render={({ field }) => (
-                          <FormControl size="small" error={!!errors.endTime}>
+                          <FormControl size="small" error={!!errors.endHour}>
                             <Select
                               {...field}
                               displayEmpty
                               style={{ minWidth: '70px' }}
+                              data-testid="end-hour"
                               onChange={(e) => {
                                 field.onChange(e.target.value);
                                 // 當結束小時改變時，檢查是否需要調整結束分鐘以滿足最小半小時間隔
@@ -446,11 +463,12 @@ export default function LeaveApplication() {
                         render={({ field }) => {
                           const endHour = watch('endHour');
                           return (
-                            <FormControl size="small" error={!!errors.endTime}>
+                            <FormControl size="small" error={!!errors.endHour}>
                               <Select
                                 {...field}
                                 displayEmpty
                                 style={{ minWidth: '70px' }}
+                                data-testid="end-minute"
                               >
                                 <MenuItem value="" disabled>分</MenuItem>
                                 {['00', '30'].map((minute) => {
@@ -475,9 +493,13 @@ export default function LeaveApplication() {
                         }}
                       />
                     </div>
-                    {errors.endTime && (
-                      <Typography variant="caption" color="error" style={{ fontSize: '0.75rem', position: 'absolute', top: '100%', left: 0 }}>
-                        {errors.endTime.message}
+                    {(errors.startHour || errors.endHour) && (
+                      <Typography variant="caption" color="error" style={{ fontSize: '0.75rem', position: 'absolute', top: '100%', left: 0, whiteSpace: 'nowrap' }}>
+                        {errors.startHour?.message || errors.endHour?.message}
+                        {/* 如果兩個錯誤都存在，顯示結束時間錯誤作為第二行 */}
+                        {errors.startHour?.message && errors.endHour?.message && (
+                          <div>{errors.endHour.message}</div>
+                        )}
                       </Typography>
                     )}
                   </>
