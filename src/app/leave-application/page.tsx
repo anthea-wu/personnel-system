@@ -33,14 +33,23 @@ const leaveApplicationSchema = z.object({
   leaveType: z.string().min(1, '請選擇請假假別'),
   timeType: z.nativeEnum(TIME_TYPE),
   startDate: z.string().min(1, '請選擇開始日期'),
-  endDate: z.string().min(1, '請選擇結束日期'),
+  endDate: z.string().optional(),
   startHour: z.string().optional(),
   startMinute: z.string().optional(),
   endHour: z.string().optional(),
   endMinute: z.string().optional(),
   reason: z.string().min(1, '請輸入請假原因')
 }).refine((data) => {
-  // 驗證結束日期不能早於開始日期（全天模式）
+  // 驗證全天模式下結束日期為必填
+  if (data.timeType === TIME_TYPE.FULL_DAY) {
+    return !!(data.endDate && data.endDate.length > 0);
+  }
+  return true;
+}, {
+  message: '請選擇結束日期',
+  path: ['endDate']
+}).refine((data) => {
+  // 驗證結束日期不能早於開始日期（僅在全天模式下檢查）
   if (data.timeType === TIME_TYPE.FULL_DAY && data.startDate && data.endDate) {
     return new Date(data.endDate) >= new Date(data.startDate);
   }
@@ -194,6 +203,7 @@ export default function LeaveApplication() {
                     label="姓名"
                     required
                     variant="outlined"
+                    size="small"
                     error={!!errors.name}
                     helperText={errors.name?.message || ''}
                   />
@@ -204,7 +214,7 @@ export default function LeaveApplication() {
                 name="leaveType"
                 control={control}
                 render={({ field }) => (
-                  <FormControl style={{ flex: 1, marginRight: '16px' }} required error={!!errors.leaveType}>
+                  <FormControl style={{ flex: 1, marginRight: '16px' }} required error={!!errors.leaveType} size="small">
                     <InputLabel>請假假別</InputLabel>
                     <Select
                       {...field}
@@ -276,6 +286,7 @@ export default function LeaveApplication() {
                     label="開始日期"
                     type="date"
                     required
+                    size="small"
                     onChange={(e) => {
                       field.onChange(e.target.value);
                       // 當是指定時間模式時，同步更新結束日期
@@ -316,6 +327,7 @@ export default function LeaveApplication() {
                     label="結束日期"
                     type="date"
                     required
+                    size="small"
                     onChange={(e) => {
                       if (timeType === TIME_TYPE.FULL_DAY) {
                         field.onChange(e.target.value);
@@ -351,157 +363,162 @@ export default function LeaveApplication() {
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', minHeight: '56px', position: 'relative' }}>
                 {timeType === TIME_TYPE.SPECIFIC_TIME ? (
                   <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Controller
-                        name="startHour"
-                        control={control}
-                        render={({ field }) => (
-                          <FormControl size="small" error={!!errors.startHour}>
-                            <Select
-                              {...field}
-                              displayEmpty
-                              style={{ minWidth: '70px' }}
-                              data-testid="start-hour"
-                            >
-                              <MenuItem value="" disabled>時</MenuItem>
-                              {Array.from({ length: 24 }, (_, i) => {
-                                if (i>=8 && i<=18) {
-                                  return (
-                                    <MenuItem key={i} value={i.toString().padStart(2, '0')}>
-                                  {i.toString().padStart(2, '0')}
-                                </MenuItem>
-                                  )
-                                }
-                                return null;
-                              })}
-                            </Select>
-                          </FormControl>
-                        )}
-                      />
-                      <Typography variant="body2">:</Typography>
-                      <Controller
-                        name="startMinute"
-                        control={control}
-                        render={({ field }) => (
-                          <FormControl size="small" error={!!errors.startHour}>
-                            <Select
-                              {...field}
-                              displayEmpty
-                              style={{ minWidth: '70px' }}
-                              data-testid="start-minute"
-                            >
-                              <MenuItem value="" disabled>分</MenuItem>
-                              <MenuItem value="00">00</MenuItem>
-                              <MenuItem value="30">30</MenuItem>
-                            </Select>
-                          </FormControl>
-                        )}
-                      />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px', position: 'relative' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Controller
+                          name="startHour"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl size="small" error={!!errors.startHour}>
+                              <Select
+                                {...field}
+                                displayEmpty
+                                style={{ minWidth: '70px' }}
+                                data-testid="start-hour"
+                              >
+                                <MenuItem value="" disabled>時</MenuItem>
+                                {Array.from({ length: 24 }, (_, i) => {
+                                  if (i>=8 && i<=18) {
+                                    return (
+                                      <MenuItem key={i} value={i.toString().padStart(2, '0')}>
+                                    {i.toString().padStart(2, '0')}
+                                  </MenuItem>
+                                    )
+                                  }
+                                  return null;
+                                })}
+                              </Select>
+                            </FormControl>
+                          )}
+                        />
+                        <Typography variant="body2">:</Typography>
+                        <Controller
+                          name="startMinute"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl size="small" error={!!errors.startHour}>
+                              <Select
+                                {...field}
+                                displayEmpty
+                                style={{ minWidth: '70px' }}
+                                data-testid="start-minute"
+                              >
+                                <MenuItem value="" disabled>分</MenuItem>
+                                <MenuItem value="00">00</MenuItem>
+                                <MenuItem value="30">30</MenuItem>
+                              </Select>
+                            </FormControl>
+                          )}
+                        />
+                      </div>
+                      {errors.startHour && (
+                        <Typography variant="caption" color="error" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                          {errors.startHour.message}
+                        </Typography>
+                      )}
                     </div>
                     
                     <Typography variant="body2" color="textSecondary">至</Typography>
                     
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Controller
-                        name="endHour"
-                        control={control}
-                        render={({ field }) => (
-                          <FormControl size="small" error={!!errors.endHour}>
-                            <Select
-                              {...field}
-                              displayEmpty
-                              style={{ minWidth: '70px' }}
-                              data-testid="end-hour"
-                              onChange={(e) => {
-                                field.onChange(e.target.value);
-                                // 當結束小時改變時，檢查是否需要調整結束分鐘以滿足最小半小時間隔
-                                if (startHour && startMinute && e.target.value === startHour) {
-                                  // 如果是同一小時，且開始分鐘是30，則結束時間必須是下一小時
-                                  if (startMinute === '30') {
-                                    setValue('endMinute', '');
-                                    setValue('endHour', '');
-                                  } else if (startMinute === '00') {
-                                    // 如果開始是00分，結束必須是30分或更晚
-                                    setValue('endMinute', '30');
-                                  }
-                                }
-                              }}
-                            >
-                              <MenuItem value="" disabled>時</MenuItem>
-                              {Array.from({ length: 24 }, (_, i) => {
-                                if (i>=8 && i<=18) {
-                                  const hourStr = i.toString().padStart(2, '0');
-                                  let isDisabled = false;
-                                  
-                                  if (startHour && startMinute) {
-                                    // 如果開始時間是30分，同一小時不能作為結束時間
-                                    if (startMinute === '30' && hourStr === startHour) {
-                                      isDisabled = true;
-                                    }
-                                    // 結束時間不能早於開始時間
-                                    else if (parseInt(hourStr) < parseInt(startHour)) {
-                                      isDisabled = true;
-                                    }
-                                  }
-                                  
-                                  return (
-                                    <MenuItem key={i} value={hourStr} disabled={isDisabled}>
-                                  {hourStr}
-                                </MenuItem>
-                                  )
-                                }
-                                return null;
-                              })}
-                            </Select>
-                          </FormControl>
-                        )}
-                      />
-                      <Typography variant="body2">:</Typography>
-                      <Controller
-                        name="endMinute"
-                        control={control}
-                        render={({ field }) => {
-                          const endHour = watch('endHour');
-                          return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px', position: 'relative' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Controller
+                          name="endHour"
+                          control={control}
+                          render={({ field }) => (
                             <FormControl size="small" error={!!errors.endHour}>
                               <Select
                                 {...field}
                                 displayEmpty
                                 style={{ minWidth: '70px' }}
-                                data-testid="end-minute"
-                              >
-                                <MenuItem value="" disabled>分</MenuItem>
-                                {['00', '30'].map((minute) => {
-                                  let isDisabled = false;
-                                  
-                                  if (startHour && startMinute && endHour === startHour) {
-                                    // 同一小時內，結束分鐘必須至少比開始分鐘晚30分鐘
-                                    const startMinutes = parseInt(startMinute);
-                                    const endMinutes = parseInt(minute);
-                                    isDisabled = endMinutes < startMinutes + 30;
+                                data-testid="end-hour"
+                                onChange={(e) => {
+                                  field.onChange(e.target.value);
+                                  // 當結束小時改變時，檢查是否需要調整結束分鐘以滿足最小半小時間隔
+                                  if (startHour && startMinute && e.target.value === startHour) {
+                                    // 如果是同一小時，且開始分鐘是30，則結束時間必須是下一小時
+                                    if (startMinute === '30') {
+                                      setValue('endMinute', '');
+                                      setValue('endHour', '');
+                                    } else if (startMinute === '00') {
+                                      // 如果開始是00分，結束必須是30分或更晚
+                                      setValue('endMinute', '30');
+                                    }
                                   }
-                                  
-                                  return (
-                                    <MenuItem key={minute} value={minute} disabled={isDisabled}>
-                                      {minute}
-                                    </MenuItem>
-                                  )
+                                }}
+                              >
+                                <MenuItem value="" disabled>時</MenuItem>
+                                {Array.from({ length: 24 }, (_, i) => {
+                                  if (i>=8 && i<=18) {
+                                    const hourStr = i.toString().padStart(2, '0');
+                                    let isDisabled = false;
+                                    
+                                    if (startHour && startMinute) {
+                                      // 如果開始時間是30分，同一小時不能作為結束時間
+                                      if (startMinute === '30' && hourStr === startHour) {
+                                        isDisabled = true;
+                                      }
+                                      // 結束時間不能早於開始時間
+                                      else if (parseInt(hourStr) < parseInt(startHour)) {
+                                        isDisabled = true;
+                                      }
+                                    }
+                                    
+                                    return (
+                                      <MenuItem key={i} value={hourStr} disabled={isDisabled}>
+                                    {hourStr}
+                                  </MenuItem>
+                                    )
+                                  }
+                                  return null;
                                 })}
                               </Select>
                             </FormControl>
-                          );
-                        }}
-                      />
+                          )}
+                        />
+                        <Typography variant="body2">:</Typography>
+                        <Controller
+                          name="endMinute"
+                          control={control}
+                          render={({ field }) => {
+                            const endHour = watch('endHour');
+                            return (
+                              <FormControl size="small" error={!!errors.endHour}>
+                                <Select
+                                  {...field}
+                                  displayEmpty
+                                  style={{ minWidth: '70px' }}
+                                  data-testid="end-minute"
+                                >
+                                  <MenuItem value="" disabled>分</MenuItem>
+                                  {['00', '30'].map((minute) => {
+                                    let isDisabled = false;
+                                    
+                                    if (startHour && startMinute && endHour === startHour) {
+                                      // 同一小時內，結束分鐘必須至少比開始分鐘晚30分鐘
+                                      const startMinutes = parseInt(startMinute);
+                                      const endMinutes = parseInt(minute);
+                                      isDisabled = endMinutes < startMinutes + 30;
+                                    }
+                                    
+                                    return (
+                                      <MenuItem key={minute} value={minute} disabled={isDisabled}>
+                                        {minute}
+                                      </MenuItem>
+                                    )
+                                  })}
+                                </Select>
+                              </FormControl>
+                            );
+                          }}
+                        />
+                      </div>
+                      {errors.endHour && (
+                        <Typography variant="caption" color="error" style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                          {errors.endHour.message}
+                        </Typography>
+                      )}
                     </div>
-                    {(errors.startHour || errors.endHour) && (
-                      <Typography variant="caption" color="error" style={{ fontSize: '0.75rem', position: 'absolute', top: '100%', left: 0, whiteSpace: 'nowrap' }}>
-                        {errors.startHour?.message || errors.endHour?.message}
-                        {/* 如果兩個錯誤都存在，顯示結束時間錯誤作為第二行 */}
-                        {errors.startHour?.message && errors.endHour?.message && (
-                          <div>{errors.endHour.message}</div>
-                        )}
-                      </Typography>
-                    )}
                   </>
                 ) : null}
               </div>
