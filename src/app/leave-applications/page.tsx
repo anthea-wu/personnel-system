@@ -92,6 +92,16 @@ export default function LeaveApplications() {
     return statuses[status] || status;
   };
 
+  // 格式化請假時間顯示
+  const formatLeaveTimeDisplay = (app: LeaveApplication): string => {
+    if (app.timeType === 'fullDay') {
+      return '-';
+    } else if (app.timeType === 'specificTime' && app.startTime && app.endTime) {
+      return `${app.startTime} - ${app.endTime}`;
+    }
+    return '-';
+  };
+
   const handleLeaveTypeChipClick = (leaveType: string) => {
     if (leaveTypeFilter === leaveType) {
       setLeaveTypeFilter('all');
@@ -283,7 +293,6 @@ export default function LeaveApplications() {
                     </TableSortLabel>
                   </TableCell>
                   <TableCell>結束日期</TableCell>
-                  <TableCell>時間類型</TableCell>
                   <TableCell>
                     <TableSortLabel
                       active={sortField === 'duration'}
@@ -309,7 +318,7 @@ export default function LeaveApplications() {
               <TableBody>
                 {filteredAndSortedApplications.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} align="center">
+                    <TableCell colSpan={8} align="center">
                       <Typography color="textSecondary">
                         {applications.length === 0 ? '目前沒有請假申請記錄' : '沒有符合篩選條件的記錄'}
                       </Typography>
@@ -331,13 +340,7 @@ export default function LeaveApplications() {
                       </TableCell>
                       <TableCell>{app.startDate}</TableCell>
                       <TableCell>{app.endDate}</TableCell>
-                      <TableCell>{app.timeType === 'fullDay' ? '全天' : '指定時間'}</TableCell>
-                      <TableCell>
-                        {app.timeType === 'specificTime' && app.startTime && app.endTime
-                          ? `${app.startTime} - ${app.endTime}`
-                          : '全天'
-                        }
-                      </TableCell>
+                      <TableCell>{formatLeaveTimeDisplay(app)}</TableCell>
                       <TableCell>
                         <Chip 
                           label={getStatusText(app.status)} 
