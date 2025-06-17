@@ -1,7 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // 記憶體儲存 - 在實際應用中應該使用資料庫
-let leaveApplications: any[] = [];
+let leaveApplications: any[] = [
+  {
+    id: "mock-1",
+    name: "Anthea",
+    startDate: "2025-06-10",
+    endDate: "2025-06-10",
+    leaveType: "sick",
+    reason: "身體不適需要休息",
+    timeType: "fullDay",
+    startTime: null,
+    endTime: null,
+    status: "pending",
+    createdAt: "2025-06-09T10:00:00.000Z"
+  },
+  {
+    id: "mock-2",
+    name: "Anthea",
+    startDate: "2025-06-17",
+    endDate: "2025-06-17",
+    leaveType: "sick",
+    reason: "看醫生複診",
+    timeType: "specificTime",
+    startTime: "08:30",
+    endTime: "09:30",
+    status: "approved",
+    createdAt: "2025-06-16T09:00:00.000Z"
+  },
+  {
+    id: "mock-3",
+    name: "Leo",
+    startDate: "2025-06-16",
+    endDate: "2025-06-17",
+    leaveType: "annual",
+    reason: "去日本玩",
+    timeType: "fullDay",
+    startTime: null,
+    endTime: null,
+    status: "pending",
+    createdAt: "2025-06-15T14:30:00.000Z"
+  },
+  {
+    id: "mock-4",
+    name: "Anthea",
+    startDate: "2025-06-16",
+    endDate: "2025-06-17",
+    leaveType: "annual",
+    reason: "去日本玩",
+    timeType: "fullDay",
+    startTime: null,
+    endTime: null,
+    status: "rejected",
+    createdAt: "2025-06-14T16:45:00.000Z"
+  },
+  {
+    id: "mock-5",
+    name: "Leo",
+    startDate: "2025-06-11",
+    endDate: "2025-06-11",
+    leaveType: "sick",
+    reason: "感冒需要休息",
+    timeType: "fullDay",
+    startTime: null,
+    endTime: null,
+    status: "approved",
+    createdAt: "2025-06-10T11:30:00.000Z"
+  },
+  {
+    id: "mock-6",
+    name: "Anthea",
+    startDate: "2025-06-11",
+    endDate: "2025-06-11",
+    leaveType: "annual",
+    reason: "處理個人事務",
+    timeType: "fullDay",
+    startTime: null,
+    endTime: null,
+    status: "pending",
+    createdAt: "2025-06-10T15:20:00.000Z"
+  }
+];
 
 export async function POST(request: NextRequest) {
   try {

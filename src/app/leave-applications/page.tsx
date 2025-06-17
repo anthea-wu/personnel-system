@@ -14,12 +14,8 @@ import {
   Chip,
   Button,
   Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Box,
-  Grid
+  TableSortLabel
 } from '@mui/material';
 import { useState, useEffect } from 'react';
 
@@ -43,6 +39,8 @@ export default function LeaveApplications() {
   const [error, setError] = useState<string | null>(null);
   const [leaveTypeFilter, setLeaveTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const fetchApplications = async () => {
     try {
@@ -94,11 +92,97 @@ export default function LeaveApplications() {
     return statuses[status] || status;
   };
 
-  const filteredApplications = applications.filter((app) => {
-    const leaveTypeMatch = leaveTypeFilter === 'all' || app.leaveType === leaveTypeFilter;
-    const statusMatch = statusFilter === 'all' || app.status === statusFilter;
-    return leaveTypeMatch && statusMatch;
-  });
+  const handleLeaveTypeChipClick = (leaveType: string) => {
+    if (leaveTypeFilter === leaveType) {
+      setLeaveTypeFilter('all');
+    } else {
+      setLeaveTypeFilter(leaveType);
+    }
+  };
+
+  const handleStatusChipClick = (status: string) => {
+    if (statusFilter === status) {
+      setStatusFilter('all');
+    } else {
+      setStatusFilter(status);
+    }
+  };
+
+  const clearAllFilters = () => {
+    setLeaveTypeFilter('all');
+    setStatusFilter('all');
+  };
+
+  const hasActiveFilters = leaveTypeFilter !== 'all' || statusFilter !== 'all';
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortApplications = (apps: LeaveApplication[]) => {
+    if (!sortField) return apps;
+    
+    return [...apps].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      
+      switch (sortField) {
+        case 'createdAt':
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
+          break;
+        case 'startDate':
+          aValue = new Date(a.startDate).getTime();
+          bValue = new Date(b.startDate).getTime();
+          break;
+        case 'duration':
+          // 計算請假時間長度用於排序
+          const aDuration = calculateDuration(a);
+          const bDuration = calculateDuration(b);
+          aValue = aDuration;
+          bValue = bDuration;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortDirection === 'asc') {
+        return aValue - bValue;
+      } else {
+        return bValue - aValue;
+      }
+    });
+  };
+
+  const calculateDuration = (app: LeaveApplication) => {
+    if (app.timeType === 'fullDay') {
+      // 全天假以天數計算（結束日期 - 開始日期 + 1）
+      const start = new Date(app.startDate);
+      const end = new Date(app.endDate);
+      return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    } else if (app.startTime && app.endTime) {
+      // 指定時間以分鐘計算
+      const [startHour, startMin] = app.startTime.split(':').map(Number);
+      const [endHour, endMin] = app.endTime.split(':').map(Number);
+      const startMinutes = startHour * 60 + startMin;
+      const endMinutes = endHour * 60 + endMin;
+      return endMinutes - startMinutes;
+    }
+    return 0;
+  };
+
+  const filteredAndSortedApplications = sortApplications(
+    applications.filter((app) => {
+      const leaveTypeMatch = leaveTypeFilter === 'all' || app.leaveType === leaveTypeFilter;
+      const statusMatch = statusFilter === 'all' || app.status === statusFilter;
+      return leaveTypeMatch && statusMatch;
+    })
+  );
 
   if (loading) {
     return (
@@ -141,50 +225,45 @@ export default function LeaveApplications() {
           <Typography variant="h6" gutterBottom>
             篩選條件
           </Typography>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth size="small">
-                <InputLabel>假別</InputLabel>
-                <Select
-                  value={leaveTypeFilter}
-                  onChange={(e) => setLeaveTypeFilter(e.target.value)}
-                  label="假別"
-                >
-                  <MenuItem value="all">全部</MenuItem>
-                  <MenuItem value="annual">特休</MenuItem>
-                  <MenuItem value="personal">事假</MenuItem>
-                  <MenuItem value="sick">病假</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth size="small">
-                <InputLabel>狀態</InputLabel>
-                <Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  label="狀態"
-                >
-                  <MenuItem value="all">全部</MenuItem>
-                  <MenuItem value="pending">待審核</MenuItem>
-                  <MenuItem value="approved">已核准</MenuItem>
-                  <MenuItem value="rejected">已拒絕</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  setLeaveTypeFilter('all');
-                  setStatusFilter('all');
-                }}
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', minHeight: '40px' }}>
+            {leaveTypeFilter !== 'all' && (
+              <Chip
+                label={getLeaveTypeText(leaveTypeFilter)}
                 size="small"
+                variant="filled"
+                color="primary"
+                onDelete={() => setLeaveTypeFilter('all')}
+                clickable
+                onClick={() => setLeaveTypeFilter('all')}
+              />
+            )}
+            {statusFilter !== 'all' && (
+              <Chip
+                label={getStatusText(statusFilter)}
+                size="small"
+                variant="filled"
+                color={getStatusColor(statusFilter) as any}
+                onDelete={() => setStatusFilter('all')}
+                clickable
+                onClick={() => setStatusFilter('all')}
+              />
+            )}
+            {hasActiveFilters && (
+              <Button
+                variant="text"
+                size="small"
+                onClick={clearAllFilters}
+                sx={{ ml: 1 }}
               >
-                清除篩選
+                清除全部篩選
               </Button>
-            </Grid>
-          </Grid>
+            )}
+            {!hasActiveFilters && (
+              <Typography variant="body2" color="textSecondary">
+                點擊表格中的標籤來篩選資料
+              </Typography>
+            )}
+          </Box>
         </Paper>
 
         <Paper elevation={3}>
@@ -194,17 +273,41 @@ export default function LeaveApplications() {
                 <TableRow>
                   <TableCell>申請人</TableCell>
                   <TableCell>假別</TableCell>
-                  <TableCell>開始日期</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortField === 'startDate'}
+                      direction={sortField === 'startDate' ? sortDirection : 'asc'}
+                      onClick={() => handleSort('startDate')}
+                    >
+                      開始日期
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell>結束日期</TableCell>
                   <TableCell>時間類型</TableCell>
-                  <TableCell>請假時間</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortField === 'duration'}
+                      direction={sortField === 'duration' ? sortDirection : 'asc'}
+                      onClick={() => handleSort('duration')}
+                    >
+                      請假時間
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell>狀態</TableCell>
-                  <TableCell>申請時間</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortField === 'createdAt'}
+                      direction={sortField === 'createdAt' ? sortDirection : 'asc'}
+                      onClick={() => handleSort('createdAt')}
+                    >
+                      申請時間
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell>請假原因</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredApplications.length === 0 ? (
+                {filteredAndSortedApplications.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} align="center">
                       <Typography color="textSecondary">
@@ -213,7 +316,7 @@ export default function LeaveApplications() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredApplications.map((app) => (
+                  filteredAndSortedApplications.map((app) => (
                     <TableRow key={app.id}>
                       <TableCell>{app.name}</TableCell>
                       <TableCell>
@@ -221,6 +324,9 @@ export default function LeaveApplications() {
                           label={getLeaveTypeText(app.leaveType)} 
                           size="small" 
                           variant="outlined"
+                          clickable
+                          onClick={() => handleLeaveTypeChipClick(app.leaveType)}
+                          sx={{ cursor: 'pointer' }}
                         />
                       </TableCell>
                       <TableCell>{app.startDate}</TableCell>
@@ -237,6 +343,9 @@ export default function LeaveApplications() {
                           label={getStatusText(app.status)} 
                           size="small" 
                           color={getStatusColor(app.status) as any}
+                          clickable
+                          onClick={() => handleStatusChipClick(app.status)}
+                          sx={{ cursor: 'pointer' }}
                         />
                       </TableCell>
                       <TableCell>
@@ -256,7 +365,7 @@ export default function LeaveApplications() {
         </Paper>
 
         <Typography variant="body2" color="textSecondary" style={{ marginTop: '16px' }}>
-          顯示 {filteredApplications.length} / {applications.length} 筆申請記錄
+          顯示 {filteredAndSortedApplications.length} / {applications.length} 筆申請記錄
         </Typography>
       </Container>
     </div>
